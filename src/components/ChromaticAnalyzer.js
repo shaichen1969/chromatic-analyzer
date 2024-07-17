@@ -9,7 +9,8 @@ import {
     findMostStableChord,
     simplifyNoteWithFlats,
     simplifyNoteWithSharps,
-    getOrderedNotes
+    getOrderedNotes,
+    buildChordSymbol
 } from './HarmonicUtils';
 
 const ChromaticAnalyzer = () => {
@@ -53,30 +54,31 @@ const ChromaticAnalyzer = () => {
 
                 if (bestChord) {
                     const harmonicFunctions = reorderHarmonicFunctions(bestChord.harmonicFunctions);
-                    const spelledChord = harmonicFunctionToNote(bestChord.root, harmonicFunctions);
 
-                    const enharmonicRoot = bestChord.root.includes('♯')
-                        ? simplifyNoteWithFlats(bestChord.root)
-                        : bestChord.root.includes('♭')
-                            ? simplifyNoteWithSharps(bestChord.root)
-                            : null;
+                    const sharpRoot = bestChord.root.includes('♭') ? simplifyNoteWithSharps(bestChord.root) : bestChord.root;
+                    const flatRoot = bestChord.root.includes('♯') ? simplifyNoteWithFlats(bestChord.root) : bestChord.root;
 
-                    const enharmonicSpelledChord = enharmonicRoot
-                        ? harmonicFunctionToNote(enharmonicRoot, harmonicFunctions)
-                        : null;
+                    const sharpSpelledChord = harmonicFunctionToNote(sharpRoot, harmonicFunctions);
+                    const flatSpelledChord = harmonicFunctionToNote(flatRoot, harmonicFunctions);
 
-                    const preferredSpelling = selectPreferredSpelling(spelledChord, enharmonicSpelledChord || spelledChord);
+                    const preferredSpelling = selectPreferredSpelling(sharpSpelledChord, flatSpelledChord);
+
+                    const preferredRoot = preferredSpelling === 'flat' ? flatRoot : sharpRoot;
+                    const preferredSpelledChord = preferredSpelling === 'flat' ? flatSpelledChord : sharpSpelledChord;
+
+                    // Calculate the chord symbol using the preferred root
+                    const chordSymbol = buildChordSymbol(preferredRoot, harmonicFunctions);
 
                     const newAnalyzedChord = {
-                        root: enharmonicRoot
-                            ? `${bestChord.root} / ${enharmonicRoot}`
-                            : bestChord.root,
+                        root: preferredRoot,
+                        altRoot: preferredSpelling === 'flat' ? sharpRoot : flatRoot,
                         notes: question.map(note => noteMap[note]),
                         harmonicFunctionsFound: harmonicFunctions,
-                        spelledChord: spelledChord.join(', '),
-                        enharmonicSpelledChord: enharmonicSpelledChord ? enharmonicSpelledChord.join(', ') : null,
+                        spelledChord: preferredSpelledChord.join(', '),
+                        enharmonicSpelledChord: preferredSpelling === 'flat' ? sharpSpelledChord.join(', ') : flatSpelledChord.join(', '),
                         preferredSpelling: preferredSpelling,
-                        preferredSpellingNotes: preferredSpelling === 'sharp' ? spelledChord.join(', ') : (enharmonicSpelledChord ? enharmonicSpelledChord.join(', ') : spelledChord.join(', '))
+                        preferredSpellingNotes: preferredSpelledChord.join(', '),
+                        chordSymbol: chordSymbol
                     };
                     setAnalyzedChord(newAnalyzedChord);
                 }
@@ -116,14 +118,17 @@ const ChromaticAnalyzer = () => {
             {analyzedChord ? (
                 <div>
                     <h4>Root Note: {analyzedChord.root}</h4>
+                    {analyzedChord.altRoot && analyzedChord.altRoot !== analyzedChord.root && (
+                        <h4>Alternative Root: {analyzedChord.altRoot}</h4>
+                    )}
                     <div>Score: {mostStableChord.score}</div>
                     <div>Harmonic Functions: {analyzedChord.harmonicFunctionsFound.join(' ')}</div>
                     <div>Chord Notes: {analyzedChord.spelledChord}</div>
-                    {analyzedChord.enharmonicSpelledChord && (
+                    {analyzedChord.enharmonicSpelledChord !== analyzedChord.spelledChord && (
                         <div>Enharmonic Chord Notes: {analyzedChord.enharmonicSpelledChord}</div>
                     )}
                     <div>Preferred Spelling: {analyzedChord.preferredSpelling}</div>
-                    <div>Preferred Spelling Notes: {analyzedChord.preferredSpellingNotes}</div>
+                    <div>Chord Symbol: {analyzedChord.chordSymbol}</div>
                 </div>
             ) : (
                 <div>No valid chords found</div>

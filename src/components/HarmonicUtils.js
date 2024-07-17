@@ -236,7 +236,101 @@ const findMostStableChord = (interpretations) => {
 
     return bestChord;
 };
+export const buildChordSymbol = (root, harmonicFunctions) => {
+    let symbol = root;
+    let quality = '';
+    let extensions = [];
+    let alterations = [];
+    let hasDiminished5th = false;
+    let has7th = false;
+    let hasMajor7th = false;
 
+    harmonicFunctions.forEach(func => {
+        switch (func) {
+            case '1':
+                break;
+            case '3':
+                quality = ''; // major
+                break;
+            case '♭3':
+                quality = 'm'; // minor
+                break;
+            case '5':
+                break;
+            case '♭5':
+                hasDiminished5th = true;
+                break;
+            case '♯5':
+                alterations.push('♯5');
+                break;
+            case '7':
+                has7th = true;
+                hasMajor7th = true;
+                break;
+            case '♭7':
+                has7th = true;
+                break;
+            case '9':
+                extensions.push('9');
+                break;
+            case '♭9':
+                alterations.push('♭9');
+                break;
+            case '♯9':
+                alterations.push('♯9');
+                break;
+            case '11':
+                extensions.push('11');
+                break;
+            case '♯11':
+                alterations.push('♯11');
+                break;
+            case '13':
+                extensions.push('13');
+                break;
+            case '♭13':
+                alterations.push('♭13');
+                break;
+            default:
+                console.warn(`Unhandled harmonic function: ${func}`);
+                break;
+        }
+    });
+
+    // Determine chord quality and 7th type
+    if (quality === 'm' && hasDiminished5th) {
+        if (has7th && !hasMajor7th) {
+            symbol += 'ø'; // half-diminished
+        } else {
+            symbol += '°'; // fully diminished
+        }
+    } else {
+        symbol += quality;
+    }
+
+    // Add 7th or triangle
+    if (has7th) {
+        if (hasMajor7th) {
+            symbol += 'Δ7'; // major 7th
+        } else if (quality === 'm' && hasDiminished5th) {
+            symbol += '7'; // already added ø or ° above
+        } else {
+            symbol += '7'; // dominant or minor 7th
+        }
+    }
+
+    // Add extensions
+    if (extensions.length > 0) {
+        symbol += extensions[extensions.length - 1]; // Add the highest extension
+    }
+
+    // Add alterations
+    if (alterations.length > 0) {
+        symbol += '(' + alterations.join(',') + ')';
+    }
+
+    return symbol;
+};
 export {
     noteMap,
     majorScales,
