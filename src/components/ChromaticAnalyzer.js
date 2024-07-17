@@ -17,6 +17,22 @@ const ChromaticAnalyzer = () => {
     const [harmonicInterpretations, setHarmonicInterpretations] = useState({});
     const [mostStableChord, setMostStableChord] = useState(null);
     const [isInvalid, setIsInvalid] = useState(false);
+    const [analyzedChord, setAnalyzedChord] = useState(null);
+
+    const countAccidentals = (notes) => {
+        return notes.reduce((count, note) => {
+            if (note.includes('♯') || note.includes('♭')) {
+                return count + 1;
+            }
+            return count;
+        }, 0);
+    };
+
+    const selectPreferredSpelling = (sharpSpelling, flatSpelling) => {
+        const sharpAccidentals = countAccidentals(sharpSpelling);
+        const flatAccidentals = countAccidentals(flatSpelling);
+        return flatAccidentals <= sharpAccidentals ? 'flat' : 'sharp';
+    };
 
     useEffect(() => {
         const newQuestion = getRandomNotes(4);
@@ -36,7 +52,8 @@ const ChromaticAnalyzer = () => {
                 setMostStableChord(bestChord);
 
                 if (bestChord) {
-                    const spelledChord = harmonicFunctionToNote(bestChord.root, reorderHarmonicFunctions(bestChord.harmonicFunctions));
+                    const harmonicFunctions = reorderHarmonicFunctions(bestChord.harmonicFunctions);
+                    const spelledChord = harmonicFunctionToNote(bestChord.root, harmonicFunctions);
 
                     const enharmonicRoot = bestChord.root.includes('♯')
                         ? simplifyNoteWithFlats(bestChord.root)
@@ -45,19 +62,23 @@ const ChromaticAnalyzer = () => {
                             : null;
 
                     const enharmonicSpelledChord = enharmonicRoot
-                        ? harmonicFunctionToNote(enharmonicRoot, reorderHarmonicFunctions(bestChord.harmonicFunctions))
+                        ? harmonicFunctionToNote(enharmonicRoot, harmonicFunctions)
                         : null;
 
-                    const analyzedChord = {
+                    const preferredSpelling = selectPreferredSpelling(spelledChord, enharmonicSpelledChord || spelledChord);
+
+                    const newAnalyzedChord = {
                         root: enharmonicRoot
                             ? `${bestChord.root} / ${enharmonicRoot}`
                             : bestChord.root,
                         notes: question.map(note => noteMap[note]),
-                        harmonicFunctionsFound: reorderHarmonicFunctions(bestChord.harmonicFunctions),
+                        harmonicFunctionsFound: harmonicFunctions,
                         spelledChord: spelledChord.join(', '),
-                        enharmonicSpelledChord: enharmonicSpelledChord ? enharmonicSpelledChord.join(', ') : null
+                        enharmonicSpelledChord: enharmonicSpelledChord ? enharmonicSpelledChord.join(', ') : null,
+                        preferredSpelling: preferredSpelling,
+                        preferredSpellingNotes: preferredSpelling === 'sharp' ? spelledChord.join(', ') : (enharmonicSpelledChord ? enharmonicSpelledChord.join(', ') : spelledChord.join(', '))
                     };
-                    
+                    setAnalyzedChord(newAnalyzedChord);
                 }
             }
         }
@@ -86,28 +107,23 @@ const ChromaticAnalyzer = () => {
                                     reorderHarmonicFunctions(harmonicInterpretations[root].harmonicFunctions).join(' ')
                                 }</div>
                                 <div>Notes Order: {getOrderedNotes(root, harmonicInterpretations[root].notes).join(', ')}</div>
-                                
                             </div>
                         ))}
                     </>
                 )}
             </div>
             <h3>Most Stable Chord:</h3>
-            {mostStableChord ? (
+            {analyzedChord ? (
                 <div>
-                    <h4>Root Note: {mostStableChord.root.includes('♯') || mostStableChord.root.includes('♭')
-                        ? `${mostStableChord.root} / ${mostStableChord.root.includes('♯') ? simplifyNoteWithFlats(mostStableChord.root) : simplifyNoteWithSharps(mostStableChord.root)}`
-                        : mostStableChord.root}
-                    </h4>
+                    <h4>Root Note: {analyzedChord.root}</h4>
                     <div>Score: {mostStableChord.score}</div>
-                    <div>Harmonic Functions: {reorderHarmonicFunctions(mostStableChord.harmonicFunctions).join(' ')}</div>
-                    <div>Chord Notes: {harmonicFunctionToNote(mostStableChord.root, reorderHarmonicFunctions(mostStableChord.harmonicFunctions)).join(', ')}</div>
-                    {(mostStableChord.root.includes('♯') || mostStableChord.root.includes('♭')) && (
-                        <div>Enharmonic Chord Notes: {harmonicFunctionToNote(
-                            mostStableChord.root.includes('♯') ? simplifyNoteWithFlats(mostStableChord.root) : simplifyNoteWithSharps(mostStableChord.root),
-                            reorderHarmonicFunctions(mostStableChord.harmonicFunctions)
-                        ).join(', ')}</div>
+                    <div>Harmonic Functions: {analyzedChord.harmonicFunctionsFound.join(' ')}</div>
+                    <div>Chord Notes: {analyzedChord.spelledChord}</div>
+                    {analyzedChord.enharmonicSpelledChord && (
+                        <div>Enharmonic Chord Notes: {analyzedChord.enharmonicSpelledChord}</div>
                     )}
+                    <div>Preferred Spelling: {analyzedChord.preferredSpelling}</div>
+                    <div>Preferred Spelling Notes: {analyzedChord.preferredSpellingNotes}</div>
                 </div>
             ) : (
                 <div>No valid chords found</div>
