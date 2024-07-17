@@ -40,23 +40,24 @@ const scoreMap = {
 const harmonicFunctionToNote = (root, harmonicFunctions) => {
     const scale = majorScales[root];
     if (!scale) return [];
-
+    //run simplify on all notes
+    
     return harmonicFunctions.map(func => {
         switch (func) {
-            case '1': return scale[0];
+            case '1': return simplifyNote(scale[0]);
             case '♭3': return simplifyNote(scale[2] + '♭');
-            case '3': return scale[2];
+            case '3': return simplifyNote(scale[2]);
             case '♭5': return simplifyNote(scale[4] + '♭');
-            case '5': return scale[4];
+            case '5': return simplifyNote(scale[4]);
             case '♭7': return simplifyNote(scale[6] + '♭');
-            case '7': return scale[6];
-            case '9': return scale[1];
+            case '7': return simplifyNote(scale[6]);
+            case '9': return simplifyNote(scale[1]);
             case '♭9': return simplifyNote(scale[1] + '♭');
             case '♯9': return simplifyNote(scale[1] + '♯');
-            case '11': return scale[3];
+            case '11': return simplifyNote(scale[3]);
             case '♯11': return simplifyNote(scale[3] + '♯');
             case '♭13': return simplifyNote(scale[5] + '♭');
-            case '13': return scale[5];
+            case '13': return simplifyNote(scale[5]);
             default: return '';
         }
     }).filter(note => note !== '');
@@ -136,6 +137,13 @@ const createHarmonicInterpretations = (question) => {
 };
 
 const simplifyNote = (note) => {
+    if (note === "F♭") return "E";
+    if (note === "C♭") return "B";
+    if (note === "E♯") return "F";
+    if (note === "B♯") return "C";
+    if (note.length === 2) return note;
+
+
     const noteWithoutAccidentals = note.replace(/[♯♭]/g, '');
     const accidentals = note.replace(/[A-G]/g, '');
 
